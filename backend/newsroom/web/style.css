@@ -1,0 +1,195 @@
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --text: #14181f;
+  --muted: #66707f;
+  --line: #e3e7ee;
+  --accent: #b4231f;
+  --accent-soft: #fdeceb;
+  --ok: #1b7f4b;
+  --err: #b4231f;
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101318; --card: #171b22; --text: #e9edf3; --muted: #98a2b3;
+    --line: #272d38; --accent: #ff6b5e; --accent-soft: #2a1b1a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+}
+header {
+  position: sticky; top: 0; z-index: 5; background: var(--card);
+  border-bottom: 1px solid var(--line); padding: 12px 20px;
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+}
+header h1 { font-size: 18px; margin: 0; letter-spacing: -.3px; }
+header h1 span { color: var(--accent); }
+nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+nav button, .btn {
+  background: transparent; border: 1px solid var(--line); color: var(--text);
+  padding: 7px 13px; border-radius: 999px; cursor: pointer; font-size: 14px;
+}
+nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.danger { color: var(--err); border-color: var(--err); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+main { max-width: 1100px; margin: 0 auto; padding: 20px; }
+/* Full-width board: the grid uses the whole window instead of a centred column */
+body.fullwidth main { max-width: none; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+input, select, textarea {
+  font: inherit; padding: 8px 11px; border: 1px solid var(--line);
+  border-radius: 9px; background: var(--card); color: var(--text); min-width: 0;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+/* Masonry: columns are real elements and app.js drops each card into the
+   shortest one, so cards pack tightly with no ragged gaps while the newest
+   items still run left-to-right across the top. */
+.grid { display: flex; gap: 14px; align-items: flex-start; }
+.masonry-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+
+/* Bookmarks use a plain responsive grid: the saved list is short enough that
+   packing buys nothing, and equal columns keep the categories tidy. */
+.cardgrid {
+  display: grid; gap: 14px; align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+/* denser layouts get smaller media and type so the cards stay balanced */
+.grid[data-cols="4"] .thumb, .grid[data-cols="5"] .thumb, .grid[data-cols="6"] .thumb { aspect-ratio: 3/2; }
+.grid[data-cols="5"] .card h3, .grid[data-cols="6"] .card h3 { font-size: 14.5px; }
+.grid[data-cols="5"] .card p,  .grid[data-cols="6"] .card p  { font-size: 12.5px; }
+.grid[data-cols="6"] .card p { display: none; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.card .thumb {
+  width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg);
+  display: block; border-bottom: 1px solid var(--line);
+}
+/* text-only cards keep a left accent so they still read as cards in the grid */
+.card--textonly { border-left: 3px solid var(--accent-soft); }
+.card--textonly .body { padding-top: 14px; }
+.card .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.card h3 { margin: 0; font-size: 16px; line-height: 1.35; }
+.card h3 a { color: inherit; text-decoration: none; }
+.card h3 a:hover { color: var(--accent); }
+.card p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.meta { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: auto; }
+.badge {
+  background: var(--accent-soft); color: var(--accent); padding: 2px 9px;
+  border-radius: 999px; font-size: 12px; font-weight: 600;
+}
+
+/* --- category colours -------------------------------------------------
+   Each source gets a hue (assigned in app.js). The card carries a tinted
+   top edge and matching badge so a category is recognisable at a glance,
+   in both themes: the tint is built from the hue with alpha, so it sits on
+   whatever the surface colour happens to be. */
+.card[data-hue] {
+  border-top: 3px solid hsl(var(--hue) 65% 52%);
+  background:
+    linear-gradient(hsl(var(--hue) 65% 52% / 0.07), transparent 120px),
+    var(--card);
+}
+.card[data-hue] .badge {
+  background: hsl(var(--hue) 65% 52% / 0.16);
+  color: hsl(var(--hue) 70% 34%);
+}
+@media (prefers-color-scheme: dark) {
+  .card[data-hue] .badge { color: hsl(var(--hue) 80% 74%); }
+}
+.card--textonly[data-hue] { border-left: 3px solid hsl(var(--hue) 65% 52% / 0.5); }
+/* the source filter shows the same colours */
+#filter-source option[data-hue] { font-weight: 600; }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.legend button {
+  border: 1px solid var(--line); background: var(--card); color: var(--text);
+  border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.legend button[aria-pressed="true"] { border-color: hsl(var(--hue) 65% 52%); }
+.legend .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: hsl(var(--hue) 65% 52%);
+}
+.legend .count { color: var(--muted); font-size: 12px; }
+table { width: 100%; border-collapse: collapse; background: var(--card);
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; }
+tr:last-child td { border-bottom: none; }
+.status-ok { color: var(--ok); } .status-error { color: var(--err); }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 18px; }
+.panel h2 { margin: 0 0 12px; font-size: 16px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.row > label { min-width: 150px; color: var(--muted); font-size: 13.5px; }
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.field label { font-size: 13px; color: var(--muted); }
+.hint { color: var(--muted); font-size: 12.5px; }
+.empty { text-align: center; color: var(--muted); padding: 60px 20px; }
+#toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 999px;
+  opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; z-index: 50;
+}
+#toast.show { opacity: 1; }
+.hidden { display: none !important; }
+code { background: var(--bg); padding: 1px 5px; border-radius: 5px; font-size: 12.5px; }
+
+
+/* --- card actions: save, export ------------------------------------- */
+.actions {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  padding: 0 14px 12px; margin-top: -4px;
+}
+.actions button, .actions a {
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer;
+  text-decoration: none; line-height: 1.6;
+}
+.actions button:hover, .actions a:hover { color: var(--text); border-color: var(--muted); }
+.actions button.saved {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-soft);
+}
+.actions button:disabled { opacity: .55; cursor: progress; }
+
+/* category chooser popover */
+.menu {
+  position: absolute; z-index: 40; background: var(--card); color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px; padding: 6px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / .18); min-width: 200px; max-height: 300px;
+  overflow: auto;
+}
+.menu button {
+  display: block; width: 100%; text-align: left; background: transparent;
+  border: none; color: inherit; padding: 7px 10px; border-radius: 7px;
+  cursor: pointer; font-size: 13.5px;
+}
+.menu button:hover { background: var(--bg); }
+.menu hr { border: none; border-top: 1px solid var(--line); margin: 5px 0; }
+.note { font-size: 12.5px; color: var(--muted); font-style: italic; }
+
+
+/* --- incremental updates -------------------------------------------- */
+/* a card that arrived by polling, so the eye can find what is new */
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+.card--new { animation: card-in .35s ease-out; }
+.card--new::after {
+  content: "new"; position: absolute; margin: -10px 0 0 10px;
+  background: var(--accent); color: #fff; font-size: 10.5px; font-weight: 700;
+  padding: 1px 7px; border-radius: 999px; letter-spacing: .04em;
+}
+.card { position: relative; }
+#new-badge {
+  position: sticky; top: 64px; z-index: 4; align-self: start;
+  margin: 0 auto 12px; display: block;
+}
+#new-badge::before { content: "↑ "; }

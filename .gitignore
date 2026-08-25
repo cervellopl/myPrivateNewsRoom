@@ -1,0 +1,22 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+
+# runtime data: the SQLite database and the plugins uploaded by the user
+backend/data/
+backend/plugins/
+
+# android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+
+# signing credentials: never commit these
+android/keystore.properties
+android/keystore/
+*.jks
+*.keystore
+android/.idea/
+*.apk

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>myPrivateNewsRoom</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📰</text></svg>">
+</head>
+<body>
+<header>
+  <h1>my<span>Private</span>NewsRoom</h1>
+  <nav>
+    <button data-view="feed" class="active">Feed</button>
+    <button data-view="bookmarks">Bookmarks</button>
+    <button data-view="sources">Sources</button>
+    <button data-view="plugins">Plugins</button>
+    <button data-view="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+  <!-- FEED -->
+  <section id="view-feed">
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Search news…" style="flex:1">
+      <select id="filter-source"><option value="">All sources</option></select>
+      <label class="btn"><input type="checkbox" id="only-images"> with image</label>
+      <label class="btn" title="Cards per row">
+        Columns
+        <select id="columns" style="border:none;background:transparent;padding:0 0 0 6px">
+          <option>1</option><option>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option>
+        </select>
+      </label>
+      <label class="btn" title="Use the whole window width">
+        <input type="checkbox" id="fullwidth"> Full width
+      </label>
+      <button class="btn" id="refresh-all">Fetch now</button>
+    </div>
+    <div class="legend" id="legend"></div>
+    <!-- new items arrive without rebuilding the board; this pill says how many -->
+    <button id="new-badge" class="btn primary hidden" data-count="0">0 new</button>
+    <div class="grid" id="news-grid"></div>
+    <div class="empty hidden" id="news-empty">
+      No news yet. Add a source under <b>Sources</b>, then hit <b>Fetch now</b>.
+    </div>
+    <div style="text-align:center;margin-top:18px">
+      <button class="btn hidden" id="load-more">Load more</button>
+    </div>
+  </section>
+
+  <!-- BOOKMARKS -->
+  <section id="view-bookmarks" class="hidden">
+    <div class="panel">
+      <h2>Categories</h2>
+      <div class="row">
+        <input id="cat-name" placeholder="New category, e.g. Do przeczytania" style="flex:1">
+        <button class="btn primary" id="cat-add">Add category</button>
+      </div>
+      <div class="legend" id="cat-legend" style="margin-top:14px"></div>
+    </div>
+    <div class="toolbar">
+      <input id="bm-search" type="search" placeholder="Search saved items…" style="flex:1">
+      <span class="hint" id="bm-count"></span>
+    </div>
+    <div class="cardgrid" id="bm-grid"></div>
+    <div class="empty hidden" id="bm-empty">
+      Nothing saved yet. Use <b>Save</b> on any card in the feed.
+    </div>
+  </section>
+
+  <!-- SOURCES -->
+  <section id="view-sources" class="hidden">
+    <div class="panel">
+      <h2>Add a source</h2>
+      <div class="field">
+        <label for="src-name">Name</label>
+        <input id="src-name" placeholder="e.g. Reuters World">
+      </div>
+      <div class="field">
+        <label for="src-plugin">Plugin</label>
+        <select id="src-plugin"></select>
+      </div>
+      <div id="src-config"></div>
+      <div class="field">
+        <label for="src-interval">Polling interval (seconds, empty = global)</label>
+        <input id="src-interval" type="number" min="60" placeholder="global">
+      </div>
+      <div class="row">
+        <button class="btn primary" id="src-save">Add source</button>
+        <button class="btn" id="src-test">Test plugin</button>
+      </div>
+      <pre id="src-test-out" class="hint hidden" style="white-space:pre-wrap;margin-top:10px"></pre>
+    </div>
+    <table>
+      <thead><tr><th>Source</th><th>Plugin</th><th>Every</th><th>Last run</th><th>News</th><th></th></tr></thead>
+      <tbody id="sources-body"></tbody>
+    </table>
+  </section>
+
+  <!-- PLUGINS -->
+  <section id="view-plugins" class="hidden">
+    <div class="panel">
+      <h2>Upload a source plugin</h2>
+      <p class="hint">
+        A plugin is one <code>.py</code> file defining a <code>PLUGIN</code> metadata dict and a
+        <code>fetch(config)</code> function returning news items. Uploaded plugins run inside the
+        server process — only upload code you trust.
+      </p>
+      <div class="row" style="margin-top:12px">
+        <input type="file" id="plugin-file" accept=".py">
+        <button class="btn primary" id="plugin-upload">Upload</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Plugin</th><th>Description</th><th>Version</th><th>Sources</th><th></th></tr></thead>
+      <tbody id="plugins-body"></tbody>
+    </table>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="hidden">
+    <div class="panel">
+      <h2>Polling</h2>
+      <div class="row">
+        <label for="poll-interval">Fetch news every</label>
+        <input id="poll-interval" type="number" min="60" style="width:120px"> seconds
+        <button class="btn primary" id="poll-save">Save</button>
+      </div>
+      <p class="hint" id="poll-hint"></p>
+    </div>
+    <div class="panel">
+      <h2>Layout</h2>
+      <div class="row">
+        <label for="columns-setting">Cards per row</label>
+        <input id="columns-setting" type="range" min="1" max="6" step="1" style="flex:1;max-width:260px">
+        <b id="columns-value">3</b>
+      </div>
+      <p class="hint">Applies to the feed grid. Narrow screens use fewer columns automatically.</p>
+      <div class="row">
+        <label for="fullwidth-setting">Full-width board</label>
+        <input type="checkbox" id="fullwidth-setting">
+        <span class="hint">Stretch the board across the whole window instead of a centred column.</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Desktop notifications</h2>
+      <div class="row">
+        <label for="notify-toggle">Notify me about new items</label>
+        <input type="checkbox" id="notify-toggle">
+        <span class="hint" id="notify-state"></span>
+      </div>
+      <p class="hint">
+        Shows a Windows/macOS/Linux toast when the feed picks up something new,
+        while this tab is open. Browsers only expose notifications on a secure
+        origin — <code>https://…</code> or <code>http://localhost</code> — so on
+        a LAN address the browser blocks them. For a machine that should be
+        notified without keeping the page open, use the
+        <code>tools/windows-notifier.ps1</code> script shipped with the server.
+      </p>
+    </div>
+    <div class="panel">
+      <h2>Admin token</h2>
+      <div class="row">
+        <label for="api-token">X-API-Token</label>
+        <input id="api-token" type="password" placeholder="only needed if the server sets one" style="flex:1">
+        <button class="btn" id="token-save">Save locally</button>
+      </div>
+      <p class="hint">Stored in this browser only and sent with write requests.</p>
+    </div>
+    <div class="panel">
+      <h2>Server status</h2>
+      <pre id="status-out" class="hint" style="white-space:pre-wrap;margin:0"></pre>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# myPrivateNewsRoom backend - deliberately tiny: storage, HTTP fetching and
+# feed parsing all use the Python standard library.
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.5
+python-multipart>=0.0.9   # plugin file uploads

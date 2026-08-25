@@ -1,0 +1,18 @@
+# Install to /etc/systemd/system/newsroom.service, then:
+#   systemctl enable --now newsroom
+[Unit]
+Description=myPrivateNewsRoom
+After=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/myyNewsRoom/backend
+Environment=NEWSROOM_POLL_INTERVAL=900
+# Environment=NEWSROOM_API_TOKEN=change-me
+ExecStart=/home/ubuntu/myyNewsRoom/backend/run.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
