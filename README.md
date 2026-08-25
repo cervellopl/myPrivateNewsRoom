@@ -102,6 +102,15 @@ Three plugins ship with the server as working examples:
 
   Items then link through a `news.google.com` redirect and carry no images, but
   headlines and dates are correct.
+
+  **Mailing-list archives** work too, without a plugin of their own. Mailman 3 /
+  HyperKitty publishes an Atom feed per list, which is not linked from the
+  archive page but is always at `…/list/<list-address>/feed` — that is how the
+  VSNET-alert variable-star alerts are followed:
+
+  ```
+  http://ooruri.kusastro.kyoto-u.ac.jp/mailman3/hyperkitty/list/vsnet-alert@ooruri.kusastro.kyoto-u.ac.jp/feed
+  ```
   Malformed feeds get a repair pass (undeclared namespace prefixes, bare `&`)
   before being rejected. Used for BBC, Hacker News and The Astronomer's
   Telegram (`https://astronomerstelegram.org/?rss`, which is RSS 1.0).
