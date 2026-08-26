@@ -722,6 +722,30 @@ class RssPluginFilterTest(unittest.TestCase):
         self.assertEqual(len(self._fetch(include="comet", link_include="/astronomy-news/")), 1)
         self.assertEqual(len(self._fetch(include="nothing", link_include="/astronomy-news/")), 0)
 
+    def test_include_matches_the_cleaned_title_not_the_prefix(self):
+        """A mailing list's own name can sit in every subject line.
+
+        vsnet-outburst prefixes every message with "[vsnet-outburst NNNNN]", so
+        an include of "Outburst" matched all of them through the prefix until
+        title_strip was made to run first.
+        """
+        feed = """<rss version="2.0"><channel>
+          <item><title>[vsnet-outburst 31704] Outbursts 23/08 2026</title>
+            <link>https://e.pl/1</link></item>
+          <item><title>[vsnet-outburst 31709] SCOV390 brightening</title>
+            <link>https://e.pl/2</link></item>
+        </channel></rss>"""
+        original = self.mod.sdk.http_get
+        self.mod.sdk.http_get = lambda *a, **k: feed
+        try:
+            items = self.mod.fetch({
+                "url": "https://e.pl/feed", "fetch_images": False,
+                "title_strip": r"^\[vsnet-\w+ \d+\]", "include": "Outburst|Activity",
+            })
+        finally:
+            self.mod.sdk.http_get = original
+        self.assertEqual([i["title"] for i in items], ["Outbursts 23/08 2026"])
+
     def test_no_filter_keeps_everything(self):
         self.assertEqual(len(self._fetch()), 3)
 

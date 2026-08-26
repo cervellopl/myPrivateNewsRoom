@@ -8,7 +8,7 @@ from newsroom import sdk
 
 PLUGIN = {
     "name": "rss",
-    "version": "1.2",
+    "version": "1.3",
     "description": "Generic RSS/Atom/RDF feed reader, with title and link filters and an og:image fallback.",
     "author": "myPrivateNewsRoom",
     "config_spec": [
@@ -41,6 +41,19 @@ def fetch(config):
 
     import re
 
+    # Title cleanup runs first, so the filters below apply to the title as it
+    # will be stored - not to a prefix the reader never sees.
+    strip = (config.get("title_strip") or "").strip()
+    if strip:
+        try:
+            strip_rx = re.compile(strip, re.I)
+        except re.error as exc:
+            raise sdk.PluginError(f"invalid title_strip pattern: {exc}") from exc
+        for item in items:
+            cleaned = strip_rx.sub("", item["title"] or "").strip(" -–—|")
+            if cleaned:
+                item["title"] = cleaned
+
     pattern = (config.get("include") or "").strip()
     if pattern:
         rx = re.compile(pattern, re.I)
@@ -57,19 +70,6 @@ def fetch(config):
     if link_exclude:
         rx = re.compile(link_exclude, re.I)
         items = [i for i in items if not rx.search(i["link"] or "")]
-
-    # Aggregator feeds append the publisher to every headline ("… - Reuters"),
-    # which is noise next to the card's own source badge.
-    strip = (config.get("title_strip") or "").strip()
-    if strip:
-        try:
-            strip_rx = re.compile(strip, re.I)
-        except re.error as exc:
-            raise sdk.PluginError(f"invalid title_strip pattern: {exc}") from exc
-        for item in items:
-            cleaned = strip_rx.sub("", item["title"] or "").strip(" -–—|")
-            if cleaned:
-                item["title"] = cleaned
 
     limit = int(config.get("limit") or 30)
     items = items[:limit]

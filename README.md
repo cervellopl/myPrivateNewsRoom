@@ -111,6 +111,12 @@ Three plugins ship with the server as working examples:
   ```
   http://ooruri.kusastro.kyoto-u.ac.jp/mailman3/hyperkitty/list/vsnet-alert@ooruri.kusastro.kyoto-u.ac.jp/feed
   ```
+
+  Mind the subject prefix when filtering such a list: every message carries
+  `[vsnet-outburst NNNNN]`, so `include: "Outburst"` would match all of them
+  through the prefix. Either anchor the pattern past it
+  (`\].*(Outburst|Activity)`) or strip the prefix with `title_strip`, which
+  runs before the filters for exactly this reason.
   Malformed feeds get a repair pass (undeclared namespace prefixes, bare `&`)
   before being rejected. Used for BBC, Hacker News and The Astronomer's
   Telegram (`https://astronomerstelegram.org/?rss`, which is RSS 1.0).
