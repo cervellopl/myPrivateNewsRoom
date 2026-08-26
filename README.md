@@ -394,14 +394,21 @@ on its own configurable cadence (Android's floor is 15 minutes).
 The board is never rebuilt behind the reader. Every action touches only what
 changed:
 
-* **New items** arrive by polling `/api/news` every 60 seconds (and whenever the
-  tab regains focus). Only items the page has not seen are prepended, with a
+* **New items** arrive by polling `/api/news` on a cadence you choose - the
+  **Auto** control in the toolbar (15 s / 30 s / 1 min / 5 min / off, mirrored
+  under Settings, Layout), with the toolbar showing `checking...` or
+  `updated 12s ago` so it is never a mystery whether the page is live. Polling
+  pauses while the tab is hidden and catches up when it regains focus. This is
+  separate from how often the *server* polls its sources. Only items the page has not seen are prepended, with a
   brief highlight and a sticky **"N new"** pill; existing cards keep their DOM
   nodes, so the scroll position and any open menu survive.
 * **Bookmarking** replaces just that one card, using the bookmark returned by
   the API - no feed reload.
 * **Fetch now** polls the sources server-side, then pulls in only the new items.
 * **Per-source Fetch** on the Sources tab redraws that single table row.
+* **The Sources tab auto-refreshes too**, comparing each source's status, last
+  run and item count, and replacing only the rows that actually changed - so a
+  table being watched during a fetch does not flicker every few seconds.
 
 Polling pauses while the tab is hidden, and a failed poll is swallowed rather
 than interrupting reading with an error.

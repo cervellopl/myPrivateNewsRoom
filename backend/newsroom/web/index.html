@@ -36,6 +36,17 @@
       <label class="btn" title="Use the whole window width">
         <input type="checkbox" id="fullwidth"> Full width
       </label>
+      <label class="btn" title="How often this page checks the server for new items">
+        Auto
+        <select id="refresh-every" style="border:none;background:transparent;padding:0 0 0 6px">
+          <option value="15">15 s</option>
+          <option value="30">30 s</option>
+          <option value="60">1 min</option>
+          <option value="300">5 min</option>
+          <option value="0">off</option>
+        </select>
+      </label>
+      <span class="hint" id="refresh-status"></span>
       <button class="btn" id="refresh-all">Fetch now</button>
     </div>
     <div class="legend" id="legend"></div>
@@ -138,6 +149,21 @@
         <b id="columns-value">3</b>
       </div>
       <p class="hint">Applies to the feed grid. Narrow screens use fewer columns automatically.</p>
+      <div class="row">
+        <label for="refresh-setting">Check for new items every</label>
+        <select id="refresh-setting" style="width:120px">
+          <option value="15">15 seconds</option>
+          <option value="30">30 seconds</option>
+          <option value="60">1 minute</option>
+          <option value="300">5 minutes</option>
+          <option value="0">never</option>
+        </select>
+      </div>
+      <p class="hint">
+        How often this page asks the server what it has collected — separate from
+        how often the server polls the sources themselves (Polling, above). Only
+        new items are fetched and slotted in; the board is never rebuilt.
+      </p>
       <div class="row">
         <label for="fullwidth-setting">Full-width board</label>
         <input type="checkbox" id="fullwidth-setting">

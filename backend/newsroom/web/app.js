@@ -11,6 +11,10 @@ const state = {
   fullwidth: (localStorage.getItem("newsroom_fullwidth") ?? "1") === "1",
   bookmarkFilter: null,
   notify: localStorage.getItem("newsroom_notify") === "1",
+  // auto-refresh cadence in seconds; 0 turns it off
+  refreshEvery: Number(localStorage.getItem("newsroom_refresh") ?? 60),
+  lastCheck: null,
+  checking: false,
   items: [],          // what the board is currently showing
   categories: [],     // bookmark categories
   columnEls: [],      // the masonry column elements
@@ -25,6 +29,10 @@ function clampColumns(value) {
   const n = Number(value);
   return Number.isFinite(n) && n >= 1 && n <= 6 ? Math.round(n) : 3;
 }
+
+/** Handle for the auto-refresh timer; declared here because bootstrap, further
+ *  down this file, starts it before the auto-refresh section is reached. */
+let refreshTimer = null;
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, props = {}, ...kids) => {
@@ -639,6 +647,37 @@ function readConfig() {
   return out;
 }
 
+/**
+ * Refresh the sources table without rebuilding it: only rows whose status,
+ * last run or item count actually changed are replaced, so a table being
+ * watched does not flicker every few seconds.
+ */
+async function updateSourceRows() {
+  const fresh = await api("/sources");
+  const previous = new Map(state.sources.map((s) => [s.id, s]));
+  const body = $("#sources-body");
+
+  const changed = (a, b) => !a
+    || a.last_run_at !== b.last_run_at || a.last_status !== b.last_status
+    || a.news_count !== b.news_count || a.enabled !== b.enabled;
+
+  // a source added or removed elsewhere changes the table's shape: redraw once
+  if (fresh.length !== state.sources.length) {
+    state.sources = fresh;
+    body.replaceChildren();
+    fresh.forEach((s) => body.append(sourceRow(s)));
+  } else {
+    fresh.forEach((source) => {
+      if (!changed(previous.get(source.id), source)) return;
+      const row = body.querySelector(`tr[data-id="${source.id}"]`);
+      if (row) row.replaceWith(sourceRow(source));
+    });
+    state.sources = fresh;
+  }
+  await fillSourceFilter();
+  renderLegend();
+}
+
 /** Redraw a single source row after it was polled, leaving the table alone. */
 async function refreshSourceRow(sourceId) {
   const fresh = await api(`/sources/${sourceId}`);
@@ -762,6 +801,7 @@ async function loadSettings() {
     `Auth ${status.auth_required ? "required" : "disabled"}.`;
   $("#status-out").textContent = JSON.stringify(status, null, 2);
   $("#api-token").value = state.token;
+  $("#refresh-setting").value = String(state.refreshEvery);
   renderNotifyState();
 }
 
@@ -815,6 +855,10 @@ $("#cat-add").onclick = async () => {
     toast(`Category "${name}" added`);
     loadBookmarks();
   } catch (err) { toast(err.message); }
+};
+$("#refresh-every").onchange = (e) => {
+  applyAutoRefresh(e.target.value);
+  if (state.refreshEvery) autoRefreshTick();   // act on the new setting at once
 };
 $("#fullwidth").onchange = (e) => applyFullWidth(e.target.checked);
 $("#fullwidth-setting").onchange = (e) => applyFullWidth(e.target.checked);
@@ -900,6 +944,8 @@ function renderNotifyState() {
   toggle.disabled = ["unsupported", "insecure", "denied"].includes(notificationState());
 }
 
+$("#refresh-setting").onchange = (e) => applyAutoRefresh(e.target.value);
+
 $("#notify-toggle").onchange = async (e) => {
   if (!e.target.checked) {
     state.notify = false;
@@ -920,6 +966,7 @@ $("#token-save").onclick = () => {
 
 applyColumns(state.columns);
 applyFullWidth(state.fullwidth);
+applyAutoRefresh(state.refreshEvery);
 
 const initialView = location.hash.slice(1);
 if (["bookmarks", "sources", "plugins", "settings"].includes(initialView))
@@ -933,11 +980,68 @@ api("/plugins").then((p) => { state.plugins = p; fillPluginSelect(); return api(
   .catch((err) => toast(err.message));
 
 // Poll for new items only; the board is never rebuilt behind the reader's back.
-setInterval(() => {
-  if (state.view === "feed" && !document.hidden) loadNewItems();
-}, 60000);
+/* ---------- auto-refresh ---------- */
+
+/**
+ * Poll for whatever the active view shows. The feed pulls in new items without
+ * rebuilding the board; the Sources tab refreshes the status column, which goes
+ * stale while you watch a fetch run.
+ */
+async function autoRefreshTick() {
+  if (document.hidden || state.checking) return;
+  state.checking = true;
+  renderRefreshStatus();
+  try {
+    if (state.view === "feed") await loadNewItems();
+    else if (state.view === "sources") await updateSourceRows();
+    state.lastCheck = Date.now();
+  } catch {
+    // a failed poll is not worth interrupting the reader over
+  }
+  state.checking = false;
+  renderRefreshStatus();
+}
+
+function applyAutoRefresh(seconds) {
+  state.refreshEvery = Number(seconds) || 0;
+  localStorage.setItem("newsroom_refresh", state.refreshEvery);
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = state.refreshEvery
+    ? setInterval(autoRefreshTick, state.refreshEvery * 1000)
+    : null;
+  const select = $("#refresh-every");
+  if (select) select.value = String(state.refreshEvery);
+  const setting = $("#refresh-setting");
+  if (setting) setting.value = String(state.refreshEvery);
+  renderRefreshStatus();
+}
+
+/** "checking…" / "updated 12 s ago" / "auto-refresh off", in the toolbar. */
+function renderRefreshStatus() {
+  const box = $("#refresh-status");
+  if (!box) return;
+  if (!state.refreshEvery) {
+    box.textContent = "auto-refresh off";
+    return;
+  }
+  if (state.checking) {
+    box.textContent = "checking…";
+    return;
+  }
+  if (!state.lastCheck) {
+    box.textContent = `every ${fmtEvery(state.refreshEvery)}`;
+    return;
+  }
+  const seconds = Math.round((Date.now() - state.lastCheck) / 1000);
+  box.textContent = seconds < 60
+    ? `updated ${seconds}s ago`
+    : `updated ${Math.round(seconds / 60)} min ago`;
+}
+
+// keep the "updated N ago" honest without polling the server for it
+setInterval(renderRefreshStatus, 5000);
 
 // catch up as soon as the tab is looked at again
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && state.view === "feed") loadNewItems();
+  if (!document.hidden && state.refreshEvery) autoRefreshTick();
 });
